@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snellino — Compressore PDF | PDE</title>
+<link rel="icon" type="image/png" href="logo/snellino-favicon-64.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg:#0f1117;--surface:#181c25;--surface2:#1e2330;--border:#2a3045;
+  --accent:#00b4e8;--accent2:#1a2d6b;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:14px;height:60px;position:sticky;top:0;z-index:100;}
+.hdr-logo{background:#fff;border-radius:6px;padding:2px 8px;display:flex;align-items:center;height:44px;}
+.hdr-logo img{height:40px;display:block;}
+.hdr-title{font-size:13px;font-weight:500;color:var(--text2);}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.hdr-user{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.logout-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:12px;font-family:var(--sans);cursor:pointer;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:600;transition:.15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#00c8ff;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+
+.main{max-width:1180px;margin:0 auto;padding:24px;}
+
+/* zona di trascinamento */
+.drop{border:2px dashed var(--border);border-radius:14px;background:var(--surface);padding:34px 20px;text-align:center;transition:.15s;position:relative;}
+.drop.over{border-color:var(--accent);background:rgba(0,180,232,.07);}
+.drop-ico{width:58px;height:58px;margin:0 auto 10px;color:var(--accent);}
+.drop h2{font-size:18px;font-weight:600;margin-bottom:6px;}
+.drop p{font-size:13px;color:var(--text2);}
+.drop-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.privacy{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:12px;color:var(--green);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:999px;padding:4px 12px;}
+.regole{margin-top:10px;font-size:11px;color:var(--text3);}
+.motore{margin-top:8px;font-size:11px;color:var(--text3);min-height:15px;}
+.motore.err{color:var(--red);}
+
+/* riepilogo e azioni */
+.barra{display:flex;align-items:center;gap:12px;margin:22px 0 12px;flex-wrap:wrap;}
+.kpi{display:flex;gap:12px;flex-wrap:wrap;}
+.k{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;min-width:120px;}
+.k-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:3px;}
+.k-v{font-family:var(--mono);font-size:17px;font-weight:600;}
+.azioni{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:14px;}
+.prog-f{height:100%;width:0;background:var(--accent);transition:width .3s;}
+
+.blk{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:8px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;text-align:right;}
+th.l{text-align:left;}
+td{padding:8px 12px;border-bottom:1px solid rgba(42,48,69,.45);font-family:var(--mono);font-size:12px;color:var(--text2);text-align:right;white-space:nowrap;}
+td.l{text-align:left;font-family:var(--sans);color:var(--text);white-space:normal;}
+td.nome{font-weight:500;word-break:break-word;}
+td.cart{color:var(--text3);font-size:11px;}
+tr.grp td{background:rgba(0,180,232,.05);font-family:var(--sans);font-weight:600;color:var(--accent);font-size:12px;text-align:left;}
+tr.tot td{background:rgba(0,180,232,.08);font-weight:700;color:var(--text);border-top:1px solid var(--border);border-bottom:none;}
+tbody tr:hover td{background:rgba(255,255,255,.02);}
+.pos{color:var(--green);} .neu{color:var(--text3);}
+.st{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:11px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid transparent;}
+.st.coda{color:var(--text3);border-color:var(--border);}
+.st.lav{color:var(--accent);border-color:rgba(0,180,232,.35);}
+.st.ok{color:var(--green);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.07);}
+.st.orig{color:var(--yellow);border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.07);}
+.st.err{color:var(--red);border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.07);}
+.warn50{display:block;font-size:10px;color:var(--red);font-family:var(--sans);margin-top:2px;}
+.mini{background:none;border:1px solid var(--border);color:var(--text2);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:11px;}
+.mini:hover{border-color:var(--accent);color:var(--accent);}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.vuoto{padding:28px;text-align:center;color:var(--text3);font-size:13px;}
+.nota{margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6;}
+
+/* login */
+.login-wrap{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:30px 28px;width:380px;max-width:100%;}
+.login-logo{background:#fff;border-radius:10px;padding:10px 16px;display:flex;justify-content:center;margin-bottom:16px;}
+.login-logo img{height:70px;}
+.login-title{font-size:18px;font-weight:600;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--text3);text-align:center;margin-bottom:20px;}
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:7px;font-size:14px;font-family:var(--sans);outline:none;}
+.login-field input:focus{border-color:var(--accent);}
+.login-err{color:var(--red);font-size:12px;min-height:16px;margin-bottom:8px;}
+.btn-login{width:100%;justify-content:center;padding:11px;}
+.login-hub{display:block;text-align:center;margin-top:14px;font-size:12px;color:var(--text3);}
+.login-hub a{color:var(--accent);}
+
+.bloccato{min-height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;}
+.bloccato h2{margin:10px 0 8px;}
+.bloccato p{color:var(--text2);margin-bottom:22px;}
+.bloccato a{background:var(--accent);color:#000;padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:9px;font-size:13px;z-index:900;opacity:0;pointer-events:none;transition:opacity .2s;max-width:92vw;}
+.toast.on{opacity:1;}
+.toast.err{border-color:var(--red);color:var(--red);}
+
+/* selettore tema (come PDE Hub) */
+.theme-switch{display:flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:2px;}
+.theme-opt{display:flex;align-items:center;gap:5px;background:transparent;border:none;border-radius:5px;color:var(--text3);font-family:var(--sans);font-size:11px;padding:4px 9px;cursor:pointer;white-space:nowrap;}
+.theme-opt:hover{color:var(--text);}
+.theme-opt svg{width:12px;height:12px;fill:currentColor;}
+html:not([data-theme="light"]) .theme-opt[data-set="dark"],
+html[data-theme="light"] .theme-opt[data-set="light"]{color:var(--text);background:rgba(0,180,232,.15);}
+
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#eef2f9;--surface:#ffffff;--surface2:#f4f7fc;--border:rgba(26,45,107,.16);
+  --accent:#0092c2;--accent2:#1a2d6b;
+  --green:#1d8a4a;--red:#c43d3d;--yellow:#a8781a;
+  --text:#16204a;--text2:#5a6388;--text3:#7a82a3;
+}
+html[data-theme="light"] .hdr{box-shadow:0 1px 8px rgba(26,45,107,.06);}
+html[data-theme="light"] .hdr-logo,html[data-theme="light"] .login-logo{border:1px solid var(--border);}
+html[data-theme="light"] .blk,html[data-theme="light"] .k,html[data-theme="light"] .drop,html[data-theme="light"] .login-box{box-shadow:0 2px 10px rgba(26,45,107,.06);}
+html[data-theme="light"] td{border-bottom-color:rgba(26,45,107,.08);}
+html[data-theme="light"] tbody tr:hover td{background:rgba(26,45,107,.03);}
+html[data-theme="light"] .btn-primary,html[data-theme="light"] .bloccato a{color:#fff;}
+html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
+
+@media (max-width:768px){
+  .hdr{padding:0 12px;gap:8px;}
+  .hdr-title,.hdr-user,.theme-opt span{display:none;}
+  .main{padding:16px;}
+  .azioni{margin-left:0;width:100%;}
+  .azioni .btn{flex:1;justify-content:center;}
+}
+</style>
+<script>
+(function () {
+  try { if (localStorage.getItem('pde-hub-theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+  function applyTheme(t) {
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  window.setTheme = function (t) {
+    applyTheme(t);
+    try { localStorage.setItem('pde-hub-theme', t); } catch (e) {}
+  };
+  // scelta fatta nel Hub (o in un'altra app PDE aperta) → aggiorna in tempo reale
+  window.addEventListener('storage', function (e) { if (e.key === 'pde-hub-theme') applyTheme(e.newValue); });
+})();
+</script>
+</head>
+<body>
+
+<!-- LOGIN (stesse credenziali del PDE Hub; se si arriva dal Hub la sessione c'è già) -->
+<div class="login-wrap" id="loginWrap" style="display:none">
+  <div class="login-box">
+    <div class="login-logo"><img src="logo/snellino-logo-480.png" alt="Snellino"></div>
+    <div class="login-title">Snellino — Compressore PDF</div>
+    <div class="login-sub">Accedi con le credenziali del PDE Hub</div>
+    <div class="login-field">
+      <label for="loginEmail">Email</label>
+      <input type="email" id="loginEmail" placeholder="nome@pde.it" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label for="loginPassword">Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="btn btn-primary btn-login" id="loginBtn" onclick="doLogin()">
+      <span class="spin" id="loginSpin" style="display:none"></span> Accedi
+    </button>
+    <div class="login-hub">oppure apri Snellino dal <a href="https://albertospde.github.io/pde-hub/">PDE Hub</a></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div class="hdr">
+    <div class="hdr-logo"><img src="logo/snellino-logo-480.png" alt="Snellino"></div>
+    <div class="hdr-title">Compressore PDF per i materiali di BookUp</div>
+    <div class="hdr-right">
+      <span class="hdr-user" id="hdrUser"></span>
+      <div class="theme-switch" role="group" aria-label="Tema">
+        <button class="theme-opt" data-set="light" onclick="setTheme('light')" title="Versione chiara">
+          <svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42zm12.02 12.02l1.42-1.42 2.12 2.12-1.42 1.42zM4.22 18.36l2.12-2.12 1.42 1.42-2.12 2.12zM16.24 6.34l2.12-2.12 1.42 1.42-2.12 2.12z"/></svg>
+          <span>Chiaro</span>
+        </button>
+        <button class="theme-opt" data-set="dark" onclick="setTheme('dark')" title="Versione scura">
+          <svg viewBox="0 0 24 24"><path d="M12.3 22A10 10 0 019.6 2.4a8 8 0 0010 10A10 10 0 0112.3 22z"/></svg>
+          <span>Scuro</span>
+        </button>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Esci</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="drop" id="drop">
+      <svg class="drop-ico" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 6h24l12 12v40H14z"/><path d="M38 6v12h12"/>
+        <path d="M32 26v20M24 38l8 8 8-8"/>
+      </svg>
+      <h2>Trascina qui i PDF o intere cartelle</h2>
+      <p>Anche più cartelle insieme: la struttura viene mantenuta nello ZIP finale.</p>
+      <div class="drop-btns">
+        <button class="btn btn-primary" onclick="document.getElementById('inCartella').click()">📁 Scegli cartella</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('inFile').click()">📄 Scegli file PDF</button>
+      </div>
+      <input type="file" id="inCartella" webkitdirectory multiple hidden>
+      <input type="file" id="inFile" accept=".pdf,application/pdf" multiple hidden>
+      <div><span class="privacy">🔒 La compressione avviene nel browser: i file non escono mai dal tuo PC</span></div>
+      <div class="regole">Immagini oltre 250 dpi portate a 200 dpi · JPEG qualità 85 · se il guadagno è sotto il 5% resta l'originale</div>
+      <div class="motore" id="motore"></div>
+    </div>
+
+    <div id="risultati" style="display:none">
+      <div class="barra">
+        <div class="kpi">
+          <div class="k"><div class="k-l">File</div><div class="k-v" id="kFile">0</div></div>
+          <div class="k"><div class="k-l">Prima</div><div class="k-v" id="kPrima">–</div></div>
+          <div class="k"><div class="k-l">Dopo</div><div class="k-v" id="kDopo">–</div></div>
+          <div class="k"><div class="k-l">Risparmio</div><div class="k-v pos" id="kRisp">–</div></div>
+        </div>
+        <div class="azioni">
+          <button class="btn btn-ghost" id="btnSvuota" onclick="svuota()">Svuota</button>
+          <button class="btn btn-ghost" id="btnCartella" onclick="salvaInCartella()" style="display:none" title="Scrive i PDF in una cartella del PC con le stesse sottocartelle">💾 Salva in una cartella</button>
+          <button class="btn btn-primary" id="btnZip" onclick="scaricaZip()" disabled>⬇ Scarica ZIP</button>
+        </div>
+      </div>
+      <div class="prog"><div class="prog-f" id="progF"></div></div>
+      <div class="blk">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th class="l">File</th><th>Prima</th><th>Dopo</th><th>Guadagno</th><th class="l">Esito</th><th></th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="nota">
+        Nello ZIP i file hanno <b>lo stesso nome</b> e stanno nelle <b>stesse cartelle</b> di partenza.
+        Estrai lo ZIP e trascina la cartella in <b>BookUp → Giri Vendita → Materiali PDF</b>: il nome della cartella diventa il giro.
+        BookUp accetta file fino a 50 MB.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ── Supabase PDE HUB: solo login (nessun file viene caricato) ──
+const SB_URL = 'https://tdflwenlylhctxssatax.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkZmx3ZW5seWxoY3R4c3NhdGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzgyNzYsImV4cCI6MjA5MTkxNDI3Nn0.l35qEL7LOvyYuI1McQlVqj4vbyTqmlevcmqWbTGYi2Q';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+// Regole di compressione
+const OPZ = { dpi: 200, soglia: 1.25, qfactor: 0.3 }; // oltre 250 dpi → 200 dpi, JPEG ≈ qualità 85
+const GUADAGNO_MIN = 0.05;                            // sotto il 5% si tiene l'originale
+const LIMITE_BOOKUP = 50 * 1024 * 1024;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function fmtMB(b) {
+  if (b == null) return '–';
+  if (b < 1024 * 1024) return (b / 1024).toLocaleString('it-IT', { maximumFractionDigits: 0 }) + ' KB';
+  return (b / 1048576).toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' MB';
+}
+const fmtPct = (x) => (x * 100).toLocaleString('it-IT', { maximumFractionDigits: 0 }) + '%';
+let toastT;
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast on' + (err ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = 'toast', 3800);
+}
+
+// ── Accesso ──
+function mostraLogin() { $('loginWrap').style.display = 'flex'; $('app').style.display = 'none'; setTimeout(() => $('loginEmail').focus(), 50); }
+function mostraBloccato() {
+  $('loginWrap').style.display = 'none';
+  $('app').innerHTML = `<div class="bloccato"><div><div style="font-size:46px">🔒</div>
+    <h2>Accesso non autorizzato</h2><p>Snellino è riservato agli utenti interni PDE.</p>
+    <a href="https://albertospde.github.io/pde-hub/">← Torna a PDE Hub</a></div></div>`;
+  $('app').style.display = 'block';
+}
+function entra(user) {
+  if ((user?.user_metadata?.role || '') === 'agente') return mostraBloccato();
+  $('loginWrap').style.display = 'none';
+  $('app').style.display = 'block';
+  $('hdrUser').textContent = user?.email || '';
+  preparaMotore();
+}
+async function doLogin() {
+  const email = $('loginEmail').value.trim(), password = $('loginPassword').value;
+  $('loginErr').textContent = '';
+  if (!email || !password) { $('loginErr').textContent = 'Inserisci email e password.'; return; }
+  $('loginSpin').style.display = 'inline-block'; $('loginBtn').disabled = true;
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { $('loginErr').textContent = 'Email o password non corrette.'; return; }
+    entra(data.user);
+  } catch (e) {
+    $('loginErr').textContent = 'Errore di connessione: ' + e.message;
+  } finally {
+    $('loginSpin').style.display = 'none'; $('loginBtn').disabled = false;
+  }
+}
+$('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+$('loginEmail').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginPassword').focus(); });
+async function doLogout() {
+  if (lavorando() && !confirm('La compressione è in corso: uscire comunque?')) return;
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ── Motore: pool di worker Ghostscript ──
+const NUM_WORKER = Math.min(3, Math.max(1, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
+const workers = [];
+let motorePronto = null, msgId = 0;
+function nuovoWorker() {
+  const w = new Worker('gs-worker.js');
+  const attesa = new Map();
+  w.onmessage = (ev) => { const p = attesa.get(ev.data.id); if (p) { attesa.delete(ev.data.id); p(ev.data); } };
+  w.onerror = (ev) => { attesa.forEach((p) => p({ ok: false, errore: ev.message || 'errore del motore' })); attesa.clear(); };
+  const invia = (msg, transfer) => new Promise((res) => { const id = ++msgId; attesa.set(id, res); w.postMessage({ ...msg, id }, transfer || []); });
+  return { w, invia, libero: true };
+}
+function preparaMotore() {
+  if (motorePronto) return motorePronto;
+  $('motore').className = 'motore';
+  $('motore').innerHTML = '<span class="spin"></span> Preparo il motore di compressione (16 MB, la prima volta può volerci qualche secondo)…';
+  for (let i = 0; i < NUM_WORKER; i++) workers.push(nuovoWorker());
+  motorePronto = Promise.all(workers.map((x) => x.invia({ tipo: 'prepara' }))).then((r) => {
+    const ko = r.find((x) => !x.ok);
+    if (ko) throw new Error(ko.errore);
+    $('motore').textContent = 'Motore pronto.';
+  }).catch((e) => {
+    $('motore').className = 'motore err';
+    $('motore').textContent = 'Motore non disponibile: ' + e.message + ' — ricarica la pagina.';
+    motorePronto = null; workers.splice(0).forEach((x) => x.w.terminate());
+    throw e;
+  });
+  return motorePronto;
+}
+
+// ── Coda dei file ──
+// voce: { percorso, file, stato: coda|lav|ok|orig|err, prima, dopo, blob, nota }
+let voci = [];
+const lavorando = () => voci.some((v) => v.stato === 'coda' || v.stato === 'lav');
+
+function aggiungi(lista) {
+  const giaDentro = new Set(voci.map((v) => v.percorso.toLowerCase()));
+  let nonPdf = 0, doppi = 0, nuovi = 0;
+  for (const { file, percorso } of lista) {
+    if (!/\.pdf$/i.test(file.name)) { if (!/^\.|desktop\.ini$|thumbs\.db$/i.test(file.name)) nonPdf++; continue; }
+    const p = percorso.replace(/^\/+/, '');
+    if (giaDentro.has(p.toLowerCase())) { doppi++; continue; }
+    giaDentro.add(p.toLowerCase());
+    voci.push({ percorso: p, file, stato: 'coda', prima: file.size, dopo: null, blob: null, nota: '' });
+    nuovi++;
+  }
+  const avvisi = [];
+  if (nonPdf) avvisi.push(`${nonPdf} file non PDF ignorati`);
+  if (doppi) avvisi.push(`${doppi} già in elenco`);
+  if (avvisi.length) toast(avvisi.join(' · '), !nuovi);
+  else if (!nuovi) toast('Nessun PDF trovato', true);
+  voci.sort((a, b) => a.percorso.localeCompare(b.percorso, 'it', { numeric: true, sensitivity: 'base' }));
+  disegna();
+  avvia();
+}
+
+// Trascinamento: file singoli e cartelle (con sottocartelle), percorso relativo conservato
+async function fileDaDrop(dt) {
+  const entries = [...(dt.items || [])].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (!entries.length) return [...dt.files].map((f) => ({ file: f, percorso: f.name }));
+  const out = [];
+  const leggiDir = (dir) => new Promise((res) => {
+    const r = dir.createReader(); const tutte = [];
+    const giro = () => r.readEntries((b) => { if (!b.length) res(tutte); else { tutte.push(...b); giro(); } }, () => res(tutte));
+    giro();
+  });
+  const visita = async (e) => {
+    if (e.isFile) {
+      const f = await new Promise((res, rej) => e.file(res, rej)).catch(() => null);
+      if (f) out.push({ file: f, percorso: e.fullPath || f.name });
+    } else if (e.isDirectory) {
+      for (const c of await leggiDir(e)) await visita(c);
+    }
+  };
+  for (const e of entries) await visita(e);
+  return out;
+}
+
+const drop = $('drop');
+['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if ($('app').style.display !== 'none') drop.classList.add('over'); }));
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) drop.classList.remove('over'); });
+document.addEventListener('drop', async (e) => {
+  e.preventDefault(); drop.classList.remove('over');
+  if ($('app').style.display === 'none' || !$('drop')) return;
+  aggiungi(await fileDaDrop(e.dataTransfer));
+});
+$('inCartella').addEventListener('change', (e) => { aggiungi([...e.target.files].map((f) => ({ file: f, percorso: f.webkitRelativePath || f.name }))); e.target.value = ''; });
+$('inFile').addEventListener('change', (e) => { aggiungi([...e.target.files].map((f) => ({ file: f, percorso: f.name }))); e.target.value = ''; });
+
+// ── Compressione ──
+async function avvia() {
+  try { await preparaMotore(); } catch (e) { return; }
+  for (const w of workers) if (w.libero) prossimo(w);
+}
+async function prossimo(w) {
+  const v = voci.find((x) => x.stato === 'coda');
+  if (!v) { w.libero = true; return; }
+  w.libero = false;
+  v.stato = 'lav'; disegna();
+  try {
+    const dati = await v.file.arrayBuffer();
+    const r = await w.invia({ tipo: 'comprimi', dati, opz: OPZ }, [dati]);
+    if (!voci.includes(v)) return prossimo(w);               // svuotato nel frattempo
+    if (!r.ok) throw new Error(r.errore);
+    const dopo = r.dati.byteLength;
+    const guadagno = (v.prima - dopo) / v.prima;
+    if (guadagno >= GUADAGNO_MIN) {
+      v.stato = 'ok'; v.dopo = dopo; v.blob = new Blob([r.dati], { type: 'application/pdf' });
+    } else {
+      v.stato = 'orig'; v.dopo = v.prima; v.blob = v.file;
+      v.nota = dopo >= v.prima ? 'già ottimizzato' : `guadagno solo ${fmtPct(guadagno)}`;
+    }
+  } catch (e) {
+    if (!voci.includes(v)) return prossimo(w);
+    console.warn('[Snellino]', v.percorso, e);
+    v.stato = 'err'; v.dopo = v.prima; v.blob = v.file;
+    v.nota = /password|encrypt/i.test(e.message) ? 'PDF protetto' : 'non comprimibile';
+  }
+  disegna();
+  prossimo(w);
+}
+
+// ── Tabella ──
+const cartellaDi = (p) => (p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '');
+const nomeDi = (p) => p.slice(p.lastIndexOf('/') + 1);
+const ESITO = {
+  coda: () => '<span class="st coda">In coda</span>',
+  lav: () => '<span class="st lav"><span class="spin"></span> Comprimo…</span>',
+  ok: () => '<span class="st ok">✓ Compresso</span>',
+  orig: (v) => `<span class="st orig" title="Resta il file originale">= Originale · ${esc(v.nota)}</span>`,
+  err: (v) => `<span class="st err" title="Resta il file originale">! Originale · ${esc(v.nota)}</span>`,
+};
+function disegna() {
+  $('risultati').style.display = voci.length ? '' : 'none';
+  let html = '', cart = null;
+  voci.forEach((v, i) => {
+    const c = cartellaDi(v.percorso);
+    if (c !== cart) { cart = c; if (c) html += `<tr class="grp"><td colspan="6">📁 ${esc(c)}</td></tr>`; }
+    const finito = v.dopo != null;
+    const g = finito ? (v.prima - v.dopo) / v.prima : null;
+    html += `<tr>
+      <td class="l nome">${esc(nomeDi(v.percorso))}${finito && v.dopo > LIMITE_BOOKUP ? '<span class="warn50">oltre 50 MB: BookUp non lo accetta</span>' : ''}</td>
+      <td>${fmtMB(v.prima)}</td>
+      <td>${finito ? fmtMB(v.dopo) : '–'}</td>
+      <td class="${g > 0 ? 'pos' : 'neu'}">${finito ? (g > 0 ? '−' + fmtPct(g) : '0%') : '–'}</td>
+      <td class="l">${ESITO[v.stato](v)}</td>
+      <td>${finito ? `<button class="mini" onclick="scaricaUno(${i})" title="Scarica questo PDF">⬇</button>` : ''}</td>
+    </tr>`;
+  });
+  const fatti = voci.filter((v) => v.dopo != null);
+  const prima = fatti.reduce((s, v) => s + v.prima, 0), dopo = fatti.reduce((s, v) => s + v.dopo, 0);
+  if (fatti.length) {
+    html += `<tr class="tot"><td class="l">Totale (${fatti.length} di ${voci.length} file)</td><td>${fmtMB(prima)}</td><td>${fmtMB(dopo)}</td>
+      <td class="pos">${prima ? '−' + fmtPct((prima - dopo) / prima) : ''}</td><td class="l" style="font-weight:600">${fmtMB(prima - dopo)} risparmiati</td><td></td></tr>`;
+  }
+  $('tbody').innerHTML = html || '<tr><td colspan="6" class="vuoto">Nessun file</td></tr>';
+  $('kFile').textContent = `${fatti.length}/${voci.length}`;
+  $('kPrima').textContent = fatti.length ? fmtMB(prima) : '–';
+  $('kDopo').textContent = fatti.length ? fmtMB(dopo) : '–';
+  $('kRisp').textContent = fatti.length && prima ? '−' + fmtPct((prima - dopo) / prima) : '–';
+  $('progF').style.width = voci.length ? (fatti.length / voci.length * 100) + '%' : '0';
+  const pronto = voci.length > 0 && !lavorando();
+  $('btnZip').disabled = !pronto;
+  $('btnCartella').disabled = !pronto;
+  $('btnCartella').style.display = 'showDirectoryPicker' in window ? '' : 'none';
+}
+
+function svuota() {
+  if (lavorando() && !confirm('La compressione è in corso: svuotare l\'elenco?')) return;
+  voci = []; disegna();
+}
+
+// ── Scarico ──
+function salvaBlob(blob, nome) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+function scaricaUno(i) { const v = voci[i]; if (v?.blob) salvaBlob(v.blob, nomeDi(v.percorso)); }
+
+function nomeZip() {
+  const radici = [...new Set(voci.map((v) => (v.percorso.includes('/') ? v.percorso.split('/')[0] : '')))];
+  if (radici.length === 1 && radici[0]) return radici[0] + '.zip';
+  return 'PDF compressi ' + new Date().toISOString().slice(0, 10) + '.zip';
+}
+async function scaricaZip() {
+  const btn = $('btnZip'); btn.disabled = true;
+  const testo = btn.innerHTML; btn.innerHTML = '<span class="spin"></span> Preparo lo ZIP…';
+  try {
+    const zip = new JSZip();
+    for (const v of voci) if (v.blob) zip.file(v.percorso, v.blob, { binary: true });
+    // i PDF sono già compressi: nello ZIP vengono solo archiviati (più veloce)
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    salvaBlob(blob, nomeZip());
+  } catch (e) {
+    toast('ZIP non creato: ' + e.message, true);
+  } finally {
+    btn.innerHTML = testo; btn.disabled = false;
+  }
+}
+// Chrome/Edge: scrive direttamente in una cartella scelta, ricreando le sottocartelle
+async function salvaInCartella() {
+  let dir;
+  try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); } catch (e) { return; }
+  let n = 0;
+  try {
+    for (const v of voci) {
+      if (!v.blob) continue;
+      const parti = v.percorso.split('/');
+      let d = dir;
+      for (const p of parti.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+      const fh = await d.getFileHandle(parti[parti.length - 1], { create: true });
+      const ws = await fh.createWritable(); await ws.write(v.blob); await ws.close();
+      n++;
+    }
+    toast(`${n} PDF salvati in "${dir.name}"`);
+  } catch (e) {
+    toast(`Salvataggio interrotto dopo ${n} file: ${e.message}`, true);
+  }
+}
+window.addEventListener('beforeunload', (e) => { if (lavorando()) { e.preventDefault(); e.returnValue = ''; } });
+
+// ── Avvio: sessione condivisa con il PDE Hub (stessa origine) ──
+(async () => {
+  // prova in locale senza login (solo su localhost)
+  if (location.hostname === 'localhost' && new URLSearchParams(location.search).has('prova')) return entra({ email: 'prova locale' });
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return mostraLogin();
+  const { data } = await sb.auth.getUser();
+  if (!data?.user) return mostraLogin();
+  entra(data.user);
+  sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') location.reload(); });
+})();
+</script>
+</body>
+</html>
