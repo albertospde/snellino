@@ -98,7 +98,7 @@ def disegna(con_testo=True):
     if con_testo:
         f_tit = font_per_cap(FONT_B, 56 * S)
         f_sub = font_per_cap(FONT_SB, 22 * S)
-        tx = 330
+        tx = 314
         off_t = f_tit.getbbox("S")[1]
         testo = Image.new("L", img.size, 0)
         ImageDraw.Draw(testo).text((p(tx)[0], p(78)[0] - off_t), "SNELLINO", font=f_tit, fill=255)
@@ -115,8 +115,8 @@ def disegna(con_testo=True):
 def salva():
     grande = disegna(True)
     bbox = grande.getbbox()
-    margine = 14 * S
-    grande = grande.crop((max(0, bbox[0] - margine), 0, min(grande.width, bbox[2] + margine), grande.height))
+    margine = 3 * S
+    grande = grande.crop((max(0, bbox[0] - margine), max(0, bbox[1] - margine), min(grande.width, bbox[2] + margine), min(grande.height, bbox[3] + margine)))
     logo = grande.resize((grande.width // S, grande.height // S), Image.LANCZOS)
     bianco = Image.new("RGB", logo.size, (255, 255, 255))
     bianco.paste(logo, mask=logo.split()[3])
