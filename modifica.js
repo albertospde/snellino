@@ -112,8 +112,12 @@ function edStato() {
     + ed.fonti.map((f, k) => `<span class="fonte" title="${esc(f.nome)} · ${f.n} pagine${usate.has(k) ? '' : ' (nessuna pagina usata)'}" style="${usate.has(k) ? '' : 'opacity:.45'}"><i style="background:${f.colore}"></i>${f.lettera} <b>${esc(f.nome)}</b></span>`).join('');
   $('edSaveInfo').textContent = ed.pagine.length
     ? `Il PDF salvato avrà ${ed.pagine.length} pagine${ed.fonti.length > 1 ? ` (da ${usate.size} PDF)` : ''}.`
-    : 'Nessuna pagina: aggiungi un PDF o annulla.';
+    : 'Nessuna pagina: aggiungi un PDF o premi Annulla.';
   document.querySelectorAll('#edLavoro [data-sel]').forEach((b) => { b.disabled = !nSel; });
+  // con pagine selezionate compare la barra azzurra delle azioni, altrimenti il suggerimento
+  $('edBarraSel').style.display = nSel ? '' : 'none';
+  $('edSuggerimento').style.display = nSel ? 'none' : '';
+  $('edNSel').textContent = nSel === 1 ? '1 pagina selezionata' : `${nSel} pagine selezionate`;
   $('edUndo').disabled = !ed.storia.length;
   $('edSalvaNorm').disabled = $('edSalvaComp').disabled = !ed.pagine.length;
 }
@@ -143,7 +147,7 @@ function edDisegna() {
       <span class="pg-check">✓</span>
       <div class="pg-thumb">${thumb}</div>
       <div class="pg-foot"><span class="pg-n">${n + 1}</span>${src}
-        <span class="pg-act"><button data-a="zoom" title="Vedi in grande">🔍</button><button data-a="sx" title="Ruota a sinistra">⟲</button><button data-a="dx" title="Ruota a destra">⟳</button><button data-a="del" title="Elimina pagina">🗑</button></span>
+        <span class="pg-act"><button data-a="zoom" title="Vedi in grande">🔍</button><button data-a="sx" title="Gira a sinistra">↺</button><button data-a="dx" title="Gira a destra">↻</button><button data-a="del" title="Togli la pagina">🗑</button></span>
       </div></div>`;
   }).join('') : '<div class="vuoto" style="grid-column:1/-1">Nessuna pagina. Usa <b>↶ Annulla</b> o <b>➕ Aggiungi PDF</b>.</div>';
   document.querySelectorAll('#edGrid .pg-ph').forEach((el) => osservatore.observe(el));
