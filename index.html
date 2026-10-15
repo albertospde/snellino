@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snellino — Compressore PDF | PDE</title>
+<title>Snellino — Comprimi e modifica PDF | PDE</title>
 <link rel="icon" type="image/png" href="logo/snellino-favicon-64.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 :root {
@@ -87,6 +89,71 @@ tbody tr:hover td{background:rgba(255,255,255,.02);}
 .vuoto{padding:28px;text-align:center;color:var(--text3);font-size:13px;}
 .nota{margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6;}
 
+/* schede */
+.tabs{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:12px 16px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;}
+.tab:hover{color:var(--text);}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* modifica PDF */
+.ed-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+.ed-nome label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:4px;}
+.ed-nome-in{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.ed-nome-in:focus-within{border-color:var(--accent);}
+.ed-nome-in input{background:none;border:none;color:var(--text);font-family:var(--sans);font-size:14px;font-weight:600;padding:8px 10px;width:340px;max-width:60vw;outline:none;}
+.ed-nome-in span{padding:0 10px;color:var(--text3);font-family:var(--mono);font-size:12px;}
+.ed-info{font-size:12px;color:var(--text2);display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.fonte{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;padding:2px 9px;font-size:11px;max-width:260px;}
+.fonte i{width:9px;height:9px;border-radius:50%;flex:none;}
+.fonte b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.ed-top-btn{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.ed-tools{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.ed-grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ed-grp-l{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);width:128px;flex:none;}
+.mini2{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;font-family:var(--sans);white-space:nowrap;}
+.mini2:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.mini2:disabled{opacity:.35;cursor:not-allowed;}
+.ed-grp input[type=text],.ed-grp input[type=number]{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;font-family:var(--mono);outline:none;}
+.ed-grp input[type=text]{width:150px;}
+.ed-grp input[type=number]{width:54px;}
+.ed-grp input:focus{border-color:var(--accent);}
+.ed-split{font-size:12px;color:var(--text2);margin-left:6px;}
+.ed-hint{font-size:11px;color:var(--text3);margin:12px 0 8px;}
+.ed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:14px;padding-bottom:90px;}
+.pg{position:relative;background:var(--surface);border:2px solid var(--border);border-radius:10px;padding:8px 8px 6px;cursor:pointer;user-select:none;transition:border-color .12s,opacity .12s;}
+.pg:hover{border-color:var(--text3);}
+.pg.sel{border-color:var(--accent);background:rgba(0,180,232,.08);}
+.pg.trascina{opacity:.35;}
+.pg.ins-prima::before,.pg.ins-dopo::after{content:"";position:absolute;top:4px;bottom:4px;width:4px;border-radius:2px;background:var(--accent);}
+.pg.ins-prima::before{left:-10px;} .pg.ins-dopo::after{right:-10px;}
+.pg-thumb{position:relative;height:190px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.pg-thumb img{max-width:100%;max-height:190px;box-shadow:0 1px 6px rgba(0,0,0,.35);background:#fff;transition:transform .2s;}
+.pg-thumb img.r90,.pg-thumb img.r270{max-width:190px;max-height:130px;}
+.pg-thumb img.r90{transform:rotate(90deg);} .pg-thumb img.r180{transform:rotate(180deg);} .pg-thumb img.r270{transform:rotate(270deg);}
+.pg-vuota{width:110px;height:150px;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.35);}
+.pg-vuota.r90,.pg-vuota.r270{width:150px;height:110px;}
+.pg-load{color:var(--text3);}
+.pg-foot{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap;row-gap:4px;}
+.pg-n{font-family:var(--mono);font-weight:600;font-size:12px;}
+.pg-src{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);font-family:var(--mono);}
+.pg-src i{width:8px;height:8px;border-radius:50%;}
+.pg-act{margin-left:auto;display:flex;gap:2px;opacity:0;transition:opacity .12s;}
+.pg:hover .pg-act{opacity:1;}
+.pg-act button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:5px;width:24px;height:22px;cursor:pointer;font-size:12px;padding:0;}
+.pg-act button:hover{border-color:var(--accent);color:var(--accent);}
+.pg-check{position:absolute;top:6px;left:6px;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;z-index:2;}
+.pg.sel .pg-check{background:var(--accent);border-color:var(--accent);color:#fff;}
+.ed-save{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:10px;justify-content:flex-end;z-index:50;box-shadow:0 -6px 20px rgba(0,0,0,.25);}
+.ed-save-info{margin-right:auto;font-size:12px;color:var(--text2);}
+.anteprima{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:800;display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;}
+.ant-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:min(1000px,88vw);max-height:94vh;display:flex;flex-direction:column;overflow:hidden;}
+.ant-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;}
+.ant-head span:last-child{display:flex;gap:6px;}
+.ant-canvas{overflow:auto;padding:14px;display:flex;justify-content:center;background:var(--surface2);}
+.ant-canvas canvas{box-shadow:0 2px 14px rgba(0,0,0,.4);background:#fff;max-width:100%;}
+.ant-nav{background:var(--surface);border:1px solid var(--border);color:var(--text);width:44px;height:64px;border-radius:10px;font-size:30px;cursor:pointer;flex:none;}
+.ant-nav:hover{border-color:var(--accent);color:var(--accent);}
+
 /* login */
 .login-wrap{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:30px 28px;width:380px;max-width:100%;}
@@ -134,11 +201,20 @@ html[data-theme="light"] td{border-bottom-color:rgba(26,45,107,.08);}
 html[data-theme="light"] tbody tr:hover td{background:rgba(26,45,107,.03);}
 html[data-theme="light"] .btn-primary,html[data-theme="light"] .bloccato a{color:#fff;}
 html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
+html[data-theme="light"] .pg,html[data-theme="light"] .ed-tools{box-shadow:0 2px 10px rgba(26,45,107,.06);}
+html[data-theme="light"] .pg-thumb img,html[data-theme="light"] .pg-vuota{box-shadow:0 1px 6px rgba(26,45,107,.25);}
+html[data-theme="light"] .ed-save{box-shadow:0 -4px 16px rgba(26,45,107,.08);}
 
 @media (max-width:768px){
   .hdr{padding:0 12px;gap:8px;}
   .hdr-title,.hdr-user,.theme-opt span{display:none;}
   .main{padding:16px;}
+  .tabs{padding:0 8px;}
+  .ed-grp-l{width:100%;}
+  .ed-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+  .pg-act{opacity:1;}
+  .ed-save{padding:10px 12px;}
+  .ed-save-info{display:none;}
   .azioni{margin-left:0;width:100%;}
   .azioni .btn{flex:1;justify-content:center;}
 }
@@ -165,7 +241,7 @@ html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
 <div class="login-wrap" id="loginWrap" style="display:none">
   <div class="login-box">
     <div class="login-logo"><img src="logo/snellino-logo-480.png" alt="Snellino"></div>
-    <div class="login-title">Snellino — Compressore PDF</div>
+    <div class="login-title">Snellino — Comprimi e modifica PDF</div>
     <div class="login-sub">Accedi con le credenziali del PDE Hub</div>
     <div class="login-field">
       <label for="loginEmail">Email</label>
@@ -186,7 +262,7 @@ html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
 <div id="app" style="display:none">
   <div class="hdr">
     <div class="hdr-logo"><img src="logo/snellino-logo-480.png" alt="Snellino"></div>
-    <div class="hdr-title">Compressore PDF per i materiali di BookUp</div>
+    <div class="hdr-title">Comprimi e modifica PDF</div>
     <div class="hdr-right">
       <span class="hdr-user" id="hdrUser"></span>
       <div class="theme-switch" role="group" aria-label="Tema">
@@ -203,7 +279,12 @@ html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
     </div>
   </div>
 
-  <div class="main">
+  <div class="tabs">
+    <button class="tab on" data-vista="comprimi" onclick="mostraVista('comprimi')">🗜 Comprimi in blocco</button>
+    <button class="tab" data-vista="modifica" onclick="mostraVista('modifica')">✂️ Modifica PDF</button>
+  </div>
+
+  <div class="main" id="vistaComprimi">
     <div class="drop" id="drop">
       <svg class="drop-ico" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 6h24l12 12v40H14z"/><path d="M38 6v12h12"/>
@@ -254,6 +335,91 @@ html[data-theme="light"] .btn-primary:hover{background:#007fa9;}
       </div>
     </div>
   </div>
+
+  <!-- MODIFICA PDF: pagine da unire, eliminare, riordinare, ruotare; rinomina; salva normale o compresso -->
+  <div class="main" id="vistaModifica" style="display:none">
+    <div class="drop" id="dropEd">
+      <svg class="drop-ico" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="10" width="20" height="26" rx="2"/><rect x="36" y="10" width="20" height="26" rx="2"/>
+        <rect x="22" y="40" width="20" height="18" rx="2"/><path d="M18 36v4h6M46 36v4h-6"/>
+      </svg>
+      <h2>Apri uno o più PDF da modificare</h2>
+      <p>Più PDF vengono uniti in un unico documento: poi scegli le pagine da tenere, riordinale, ruotale o eliminale.</p>
+      <div class="drop-btns">
+        <button class="btn btn-primary" onclick="document.getElementById('inEd').click()">📄 Apri PDF</button>
+      </div>
+      <input type="file" id="inEd" accept=".pdf,application/pdf" multiple hidden>
+      <div><span class="privacy">🔒 Tutto avviene nel browser: i file non escono mai dal tuo PC</span></div>
+    </div>
+
+    <div id="edLavoro" style="display:none">
+      <div class="ed-top">
+        <div class="ed-nome">
+          <label for="edNome">Nome del file</label>
+          <div class="ed-nome-in"><input type="text" id="edNome" spellcheck="false"><span>.pdf</span></div>
+        </div>
+        <div class="ed-info" id="edInfo"></div>
+        <div class="ed-top-btn">
+          <button class="btn btn-ghost" id="edUndo" onclick="edAnnulla()" title="Annulla l'ultima modifica (Ctrl+Z)" disabled>↶ Annulla</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('inEdAgg').click()" title="Aggiunge in fondo le pagine di altri PDF">➕ Aggiungi PDF</button>
+          <button class="btn btn-ghost" onclick="edChiudi()">✕ Chiudi</button>
+          <input type="file" id="inEdAgg" accept=".pdf,application/pdf" multiple hidden>
+        </div>
+      </div>
+
+      <div class="ed-tools">
+        <div class="ed-grp">
+          <span class="ed-grp-l">Seleziona</span>
+          <button class="mini2" onclick="edSeleziona('tutte')">Tutte</button>
+          <button class="mini2" onclick="edSeleziona('nessuna')">Nessuna</button>
+          <button class="mini2" onclick="edSeleziona('inverti')">Inverti</button>
+          <button class="mini2" onclick="edSeleziona('dispari')">Dispari</button>
+          <button class="mini2" onclick="edSeleziona('pari')">Pari</button>
+          <input type="text" id="edIntervallo" placeholder="es. 1-3, 7, 10-12" title="Pagine da selezionare">
+          <button class="mini2" onclick="edSelezionaIntervallo()">Seleziona</button>
+        </div>
+        <div class="ed-grp">
+          <span class="ed-grp-l">Pagine selezionate</span>
+          <button class="mini2" data-sel onclick="edRuota(-90)" title="Ruota a sinistra">⟲ Ruota</button>
+          <button class="mini2" data-sel onclick="edRuota(90)" title="Ruota a destra">⟳ Ruota</button>
+          <button class="mini2" data-sel onclick="edElimina()" title="Elimina (Canc)">🗑 Elimina</button>
+          <button class="mini2" data-sel onclick="edTieniSolo()">✔ Tieni solo queste</button>
+          <button class="mini2" data-sel onclick="edDuplica()">⧉ Duplica</button>
+          <button class="mini2" data-sel onclick="edSposta('inizio')">⇤ All'inizio</button>
+          <button class="mini2" data-sel onclick="edSposta('fine')">⇥ In fondo</button>
+        </div>
+        <div class="ed-grp">
+          <span class="ed-grp-l">Documento</span>
+          <button class="mini2" onclick="edPaginaBianca()" title="Inserisce una pagina bianca dopo la selezione (o in fondo)">▭ Pagina bianca</button>
+          <button class="mini2" onclick="edInvertiOrdine()">⇅ Inverti ordine</button>
+          <button class="mini2" data-sel onclick="edEstrai()" title="Scarica un PDF con le sole pagine selezionate">⬇ Estrai selezionate</button>
+          <span class="ed-split">Dividi ogni <input type="number" id="edOgni" value="1" min="1"> pag.</span>
+          <button class="mini2" onclick="edDividi()" title="Scarica uno ZIP con un PDF ogni N pagine">✂ Dividi (ZIP)</button>
+        </div>
+      </div>
+
+      <div class="ed-hint">Clic su una pagina per selezionarla (Maiusc+clic per un intervallo) · trascina per spostarla · doppio clic per vederla in grande</div>
+      <div class="ed-grid" id="edGrid"></div>
+
+      <div class="ed-save">
+        <div class="ed-save-info" id="edSaveInfo"></div>
+        <button class="btn btn-ghost" id="edSalvaComp" onclick="edSalva(true)" title="Immagini oltre 250 dpi a 200 dpi, JPEG 85">🗜 Salva compresso</button>
+        <button class="btn btn-primary" id="edSalvaNorm" onclick="edSalva(false)">💾 Salva PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- anteprima grande di una pagina -->
+<div class="anteprima" id="anteprima" style="display:none" onclick="if(event.target===this)edChiudiAnteprima()">
+  <button class="ant-nav ant-prev" onclick="edAnteprimaVai(-1)" title="Pagina precedente (←)">‹</button>
+  <div class="ant-box">
+    <div class="ant-head"><span id="antTitolo"></span>
+      <span><button class="mini2" id="antSel" onclick="edAnteprimaSel()"></button>
+      <button class="mini2" onclick="edChiudiAnteprima()">✕ Chiudi</button></span></div>
+    <div class="ant-canvas"><canvas id="antCanvas"></canvas></div>
+  </div>
+  <button class="ant-nav ant-next" onclick="edAnteprimaVai(1)" title="Pagina successiva (→)">›</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -402,13 +568,29 @@ async function fileDaDrop(dt) {
 }
 
 const drop = $('drop');
-['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if ($('app').style.display !== 'none') drop.classList.add('over'); }));
-document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) drop.classList.remove('over'); });
+const vistaAttiva = () => ($('vistaModifica') && $('vistaModifica').style.display !== 'none' ? 'modifica' : 'comprimi');
+const zonaDrop = () => (vistaAttiva() === 'modifica' ? $('dropEd') : drop);
+// solo i file trascinati dal PC: lo spostamento delle pagine in Modifica PDF non passa di qui
+const portaFile = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (e) => {
+  if (!portaFile(e)) return;
+  e.preventDefault(); if ($('app').style.display !== 'none' && zonaDrop()) zonaDrop().classList.add('over');
+}));
+document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) [drop, $('dropEd')].forEach((d) => d && d.classList.remove('over')); });
 document.addEventListener('drop', async (e) => {
-  e.preventDefault(); drop.classList.remove('over');
+  if (!portaFile(e)) return;
+  e.preventDefault(); [drop, $('dropEd')].forEach((d) => d && d.classList.remove('over'));
   if ($('app').style.display === 'none' || !$('drop')) return;
-  aggiungi(await fileDaDrop(e.dataTransfer));
+  const lista = await fileDaDrop(e.dataTransfer);
+  if (vistaAttiva() === 'modifica') edApri(lista.map((x) => x.file));
+  else aggiungi(lista);
 });
+
+function mostraVista(v) {
+  $('vistaComprimi').style.display = v === 'comprimi' ? '' : 'none';
+  $('vistaModifica').style.display = v === 'modifica' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.vista === v));
+}
 $('inCartella').addEventListener('change', (e) => { aggiungi([...e.target.files].map((f) => ({ file: f, percorso: f.webkitRelativePath || f.name }))); e.target.value = ''; });
 $('inFile').addEventListener('change', (e) => { aggiungi([...e.target.files].map((f) => ({ file: f, percorso: f.name }))); e.target.value = ''; });
 
@@ -469,7 +651,8 @@ function disegna() {
       <td>${finito ? fmtMB(v.dopo) : '–'}</td>
       <td class="${g > 0 ? 'pos' : 'neu'}">${finito ? (g > 0 ? '−' + fmtPct(g) : '0%') : '–'}</td>
       <td class="l">${ESITO[v.stato](v)}</td>
-      <td>${finito ? `<button class="mini" onclick="scaricaUno(${i})" title="Scarica questo PDF">⬇</button>` : ''}</td>
+      <td><button class="mini" onclick="edApriDaElenco(${i})" title="Apri l'originale in Modifica PDF">✎</button>
+        ${finito ? `<button class="mini" onclick="scaricaUno(${i})" title="Scarica questo PDF">⬇</button>` : ''}</td>
     </tr>`;
   });
   const fatti = voci.filter((v) => v.dopo != null);
@@ -558,5 +741,6 @@ window.addEventListener('beforeunload', (e) => { if (lavorando()) { e.preventDef
   sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') location.reload(); });
 })();
 </script>
+<script src="modifica.js"></script>
 </body>
 </html>

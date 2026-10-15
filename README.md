@@ -1,4 +1,4 @@
-# Snellino — Compressore PDF
+# Snellino — Comprimi e modifica PDF
 
 App del PDE Hub (sezione **AppSelling & Utility**) per alleggerire i PDF degli editori prima di
 caricarli in **BookUp → Giri Vendita → Materiali PDF**. Pubblicata su GitHub Pages come
@@ -15,6 +15,19 @@ caricarli in **BookUp → Giri Vendita → Materiali PDF**. Pubblicata su GitHub
   es. protetto da password) resta il file originale.
 - Tabella prima/dopo per file e totale; **Scarica ZIP** con la stessa struttura di cartelle e gli
   stessi nomi file. Su Chrome/Edge c'è anche "Salva in una cartella" che scrive direttamente su disco.
+
+## Modifica PDF (seconda scheda, `modifica.js`)
+- Si aprono uno o più PDF (trascinati o con "Apri PDF"; dalla tabella della compressione col tasto ✎):
+  più PDF vengono **uniti** in un unico documento, "Aggiungi PDF" accoda altre pagine.
+- Pagine come miniature (pdf.js): clic per selezionare (Maiusc+clic = intervallo), selezione per
+  numeri ("1-3, 7"), tutte/nessuna/inverti/pari/dispari; trascinamento per **riordinare**; doppio clic o 🔍
+  per vederle in grande.
+- Sulle pagine selezionate: ruota, elimina, tieni solo queste, duplica, sposta all'inizio/in fondo;
+  sul documento: pagina bianca, inverti ordine, estrai le selezionate in un PDF, dividi ogni N pagine (ZIP).
+- Annulla (Ctrl+Z) per ogni modifica; Canc elimina, Ctrl+A seleziona tutto.
+- Campo **Nome del file** per rinominare; **Salva PDF** (riscrittura con pdf-lib, senza perdita) oppure
+  **Salva compresso** (stesse regole e stesso motore Ghostscript della compressione in blocco).
+- I PDF protetti da password non si possono aprire.
 
 ## Accesso
 Login con le credenziali del PDE Hub (Supabase "PDE HUB"; se si arriva dal Hub la sessione c'è già).
