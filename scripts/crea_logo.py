@@ -1,8 +1,8 @@
 """Genera il logo di Snellino nello stile di Giro Manager e PDE Festival, con un tocco divertente.
 
 Stessi caratteri (Century Gothic) e colori: "SNELL" blu notte in grassetto, "INO" blu, motto
-spaziato sotto. Il pavone del PDE Hub (ritagliato dal logo Giro Manager) è "a dieta": davanti il
-pavone snellito, dietro l'ombra azzurra di com'era prima, e due frecce che lo stringono.
+spaziato sotto. Il pavone del PDE Hub (ritagliato dal logo Giro Manager) è "compresso" come i PDF: davanti il
+ventaglio chiuso, dietro l'ombra azzurra del ventaglio aperto, e due frecce che lo comprimono.
 Uso:  py scripts/crea_logo.py   (dalla cartella del progetto)
 """
 from pathlib import Path
@@ -23,7 +23,7 @@ pavone = sorgente.crop((1797, 0, 2181, sorgente.height))      # 384 × 489, pavo
 H = sorgente.height
 CAP_TOP, CAP_BOTTOM = 150, 360                                 # maiuscole più grandi di Giro Manager
 TAG_TOP = 412
-SNELLO = 0.52                                                  # quanto è dimagrito il pavone
+COMPRESSIONE = 0.52                                            # quanto si chiude il ventaglio
 
 
 def font_per_cap(path, cap):
@@ -40,7 +40,7 @@ def font_per_cap(path, cap):
 
 
 def tinta(img, colore):
-    """Stessa sagoma, un solo colore (per l'ombra del pavone di prima)."""
+    """Stessa sagoma, un solo colore (per l'ombra del ventaglio aperto)."""
     pieno = Image.new("RGBA", img.size, colore)
     alfa = img.split()[3].point(lambda a: a * colore[3] // 255)
     pieno.putalpha(alfa)
@@ -58,18 +58,18 @@ def freccia(d, x, y, verso, colore, s=1.0):
             d.ellipse([px - w / 2, py - w / 2, px + w / 2, py + w / 2], fill=colore)
 
 
-def pavone_a_dieta(s=1.0):
-    """Ombra del pavone di prima + pavone snellito + frecce. Ritorna immagine RGBA."""
+def pavone_compresso(s=1.0):
+    """Ombra del ventaglio aperto + pavone compresso + frecce. Ritorna immagine RGBA."""
     pw, ph = pavone.size
-    sottile = pavone.resize((round(pw * SNELLO), ph), Image.LANCZOS)
+    sottile = pavone.resize((round(pw * COMPRESSIONE), ph), Image.LANCZOS)
     margine = 0
     img = Image.new("RGBA", (pw + margine, ph), (255, 255, 255, 0))
     ombra = tinta(pavone, OMBRA)
     img.alpha_composite(ombra, (margine, 0))
-    # il pavone snellito tiene la testa e la coda dove stavano (allineato a destra)
+    # il pavone compresso tiene la testa e la coda dove stavano (allineato a destra)
     img.alpha_composite(sottile, (margine + pw - sottile.width, 0))
     d = ImageDraw.Draw(img)
-    # frecce sull'ombra che spingono il ventaglio a destra: "stringi!"
+    # frecce sull'ombra che comprimono il ventaglio verso destra
     freccia(d, margine + pw - sottile.width - 30, 232, +1, CIANO)
     return img
 
@@ -79,7 +79,7 @@ def logo_completo(con_pavone=True):
     f_pde = font_per_cap(FONT_B, cap)
     f_nome = font_per_cap(FONT_R, cap)
     f_tag = font_per_cap(FONT_B, 40)
-    pav = pavone_a_dieta()
+    pav = pavone_compresso()
 
     X0 = 41
     w_pde = f_pde.getlength("SNELL")
@@ -97,7 +97,7 @@ def logo_completo(con_pavone=True):
     spazio = 7
     x = X0 + 3
     y = TAG_TOP - f_tag.getbbox("E")[1]
-    for t, col in [("COMPRIMI.", NAVY), ("I", NAVY), ("UNISCI.", BLU), ("I", BLU), ("DIMAGRISCI.", CIANO)]:
+    for t, col in [("COMPRIMI.", NAVY), ("I", NAVY), ("UNISCI.", BLU), ("I", BLU), ("RIORDINA.", CIANO)]:
         for c in t:
             d.text((x, y), c, font=f_tag, fill=col)
             x += f_tag.getlength(c) + spazio
@@ -134,7 +134,7 @@ def salva():
     # quindi qui il pavone è alto quanto tutto il blocco di testo e la scritta viene più grande.
     testo = logo_completo(con_pavone=False)
     testo = testo.crop(testo.getbbox())
-    pav = pavone_a_dieta()
+    pav = pavone_compresso()
     pav = pav.crop(pav.getbbox())
     hp = round(testo.height * 1.28)
     pav = pav.resize((round(pav.width * hp / pav.height), hp), Image.LANCZOS)
@@ -148,8 +148,8 @@ def salva():
     card = card.resize((720, round(card.height * 720 / card.width)), Image.LANCZOS)
     su_bianco(card).save(OUT / "snellino-card-hub.png", optimize=True)
 
-    # icona quadrata e favicon: solo il pavone a dieta
-    pav = pavone_a_dieta()
+    # icona quadrata e favicon: solo il pavone compresso
+    pav = pavone_compresso()
     pav = pav.crop(pav.getbbox())
     lato = round(max(pav.size) * 1.12)
     icona = Image.new("RGBA", (lato, lato), (255, 255, 255, 0))
