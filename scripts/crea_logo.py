@@ -1,38 +1,33 @@
-"""Genera il logo di Snellino nello stile delle tessere AppSelling del PDE Hub
-(Note di Credito, Converti Upload, Cedole): nodo di rete a sinistra, icona a tratto
-blu sfumato (documento PDF con distintivo "comprimi"), titolo blu notte e sottotitolo ciano.
+"""Genera il logo di Snellino nello stile di Giro Manager e PDE Festival, con un tocco divertente.
+
+Stessi caratteri (Century Gothic) e colori: "SNELL" blu notte in grassetto, "INO" blu, motto
+spaziato sotto. Il pavone del PDE Hub (ritagliato dal logo Giro Manager) è "a dieta": davanti il
+pavone snellito, dietro l'ombra azzurra di com'era prima, e due frecce che lo stringono.
 Uso:  py scripts/crea_logo.py   (dalla cartella del progetto)
 """
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 QUI = Path(__file__).resolve().parent.parent
+GIRO = QUI.parent / "GIRO MANAGER" / "public" / "logo"
 OUT = QUI / "logo"
 OUT.mkdir(exist_ok=True)
 
-S = 4                                   # disegno a 4x, poi riduzione (bordi morbidi)
-W, H = 780, 256
-NAVY, BLU, AZZURRO, CIANO = (10, 45, 125), (16, 82, 196), (24, 128, 226), (22, 172, 236)
-FONT_B = "C:/Windows/Fonts/segoeuib.ttf"
-FONT_SB = "C:/Windows/Fonts/seguisb.ttf"
+NAVY, BLU, CIANO = (0, 28, 80, 255), (0, 92, 224, 255), (16, 172, 224, 255)
+OMBRA = (16, 172, 224, 70)
+FONT_B = "C:/Windows/Fonts/GOTHICB.TTF"
+FONT_R = "C:/Windows/Fonts/GOTHIC.TTF"
 
-
-def p(*xy):
-    return [v * S for v in xy]
-
-
-def gradiente(w, h, c1, c2, diagonale=True):
-    """Sfumatura da c1 (in alto a sinistra) a c2 (in basso a destra)."""
-    g = Image.new("RGB", (w, h))
-    px = g.load()
-    for y in range(h):
-        for x in range(w):
-            t = ((x / w) * 0.55 + (y / h) * 0.45) if diagonale else x / w
-            px[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(c1, c2))
-    return g
+sorgente = Image.open(GIRO / "giro-manager-logo.png").convert("RGBA")
+pavone = sorgente.crop((1797, 0, 2181, sorgente.height))      # 384 × 489, pavone tra y 38 e 446
+H = sorgente.height
+CAP_TOP, CAP_BOTTOM = 150, 360                                 # maiuscole più grandi di Giro Manager
+TAG_TOP = 412
+SNELLO = 0.52                                                  # quanto è dimagrito il pavone
 
 
 def font_per_cap(path, cap):
+    """Font con altezza delle maiuscole pari a `cap` pixel."""
     size = cap
     for _ in range(30):
         f = ImageFont.truetype(path, size)
@@ -44,91 +39,122 @@ def font_per_cap(path, cap):
     return f
 
 
-def disegna(con_testo=True):
-    img = Image.new("RGBA", (W * S, H * S), (255, 255, 255, 0))
+def tinta(img, colore):
+    """Stessa sagoma, un solo colore (per l'ombra del pavone di prima)."""
+    pieno = Image.new("RGBA", img.size, colore)
+    alfa = img.split()[3].point(lambda a: a * colore[3] // 255)
+    pieno.putalpha(alfa)
+    return pieno
+
+
+def freccia(d, x, y, verso, colore, s=1.0):
+    """Chevron doppio che spinge verso il pavone (verso = +1 → destra)."""
+    w = 13 * s
+    for k in (0, 1):
+        x0 = x + verso * k * 38 * s
+        d.line([(x0 - verso * 26 * s, y - 36 * s), (x0, y), (x0 - verso * 26 * s, y + 36 * s)],
+               fill=colore, width=round(w), joint="curve")
+        for (px, py) in [(x0 - verso * 26 * s, y - 36 * s), (x0, y), (x0 - verso * 26 * s, y + 36 * s)]:
+            d.ellipse([px - w / 2, py - w / 2, px + w / 2, py + w / 2], fill=colore)
+
+
+def pavone_a_dieta(s=1.0):
+    """Ombra del pavone di prima + pavone snellito + frecce. Ritorna immagine RGBA."""
+    pw, ph = pavone.size
+    sottile = pavone.resize((round(pw * SNELLO), ph), Image.LANCZOS)
+    margine = 0
+    img = Image.new("RGBA", (pw + margine, ph), (255, 255, 255, 0))
+    ombra = tinta(pavone, OMBRA)
+    img.alpha_composite(ombra, (margine, 0))
+    # il pavone snellito tiene la testa e la coda dove stavano (allineato a destra)
+    img.alpha_composite(sottile, (margine + pw - sottile.width, 0))
     d = ImageDraw.Draw(img)
-
-    # ── nodo di rete (come nelle altre tessere) ──
-    c = (60, 128)
-    rami = [((20, 128), NAVY, 7), ((60, 88), AZZURRO, 7), ((60, 168), AZZURRO, 7), ((100, 128), CIANO, 8)]
-    for (x, y), col, r in rami:
-        d.line(p(*c, x, y), fill=BLU, width=4 * S)
-    for (x, y), col, r in rami:
-        d.ellipse(p(x - r, y - r, x + r, y + r), fill=col)
-    d.ellipse(p(c[0] - 11, c[1] - 11, c[0] + 11, c[1] + 11), fill=NAVY)
-
-    # ── documento PDF a tratto sfumato ──
-    tratto = Image.new("L", img.size, 0)
-    t = ImageDraw.Draw(tratto)
-    x0, y0, x1, y1, piega = 138, 20, 262, 236, 36
-    sp = 9 * S
-    # contorno con l'angolo in alto a destra piegato
-    t.line(p(x0, y0 + 12, x0, y1, x1, y1, x1, y0 + piega, x1 - piega, y0, x0, y0, x0, y0 + 12),
-           fill=255, width=sp, joint="curve")
-    for (cx, cy) in [(x0, y0), (x0, y1), (x1, y1), (x1 - piega, y0), (x1, y0 + piega)]:
-        t.ellipse(p(cx - 4.5, cy - 4.5, cx + 4.5, cy + 4.5), fill=255)
-    t.line(p(x1 - piega, y0, x1 - piega, y0 + piega, x1, y0 + piega), fill=255, width=7 * S, joint="curve")
-    # righe di testo
-    for yy, ww in [(118, 86), (138, 70), (158, 54)]:
-        t.line(p(x0 + 22, yy, x0 + 22 + ww, yy), fill=255, width=7 * S)
-    img.paste(gradiente(*img.size, NAVY, AZZURRO), mask=tratto)
-
-    # scritta PDF dentro il documento
-    f_pdf = font_per_cap(FONT_B, 27 * S)
-    off = f_pdf.getbbox("P")[1]
-    d.text((p(x0 + 20)[0], p(66)[0] - off), "PDF", font=f_pdf, fill=NAVY)
-
-    # ── distintivo "comprimi": cerchio ciano con due frecce che stringono ──
-    bx, by, br = 262, 190, 42
-    d.ellipse(p(bx - br, by - br, bx + br, by + br), fill=(255, 255, 255, 255))
-    anello = Image.new("L", img.size, 0)
-    a = ImageDraw.Draw(anello)
-    a.ellipse(p(bx - br + 4, by - br + 4, bx + br - 4, by + br - 4), outline=255, width=8 * S)
-    lw = 7 * S
-    # freccia dall'alto verso il centro
-    a.line(p(bx, by - 26, bx, by - 8), fill=255, width=lw)
-    a.line(p(bx - 11, by - 17, bx, by - 6, bx + 11, by - 17), fill=255, width=lw, joint="curve")
-    # freccia dal basso verso il centro
-    a.line(p(bx, by + 26, bx, by + 8), fill=255, width=lw)
-    a.line(p(bx - 11, by + 17, bx, by + 6, bx + 11, by + 17), fill=255, width=lw, joint="curve")
-    # barra centrale
-    a.line(p(bx - 22, by, bx + 22, by), fill=255, width=5 * S)
-    img.paste(gradiente(*img.size, AZZURRO, CIANO), mask=anello)
-
-    if con_testo:
-        f_tit = font_per_cap(FONT_B, 56 * S)
-        f_sub = font_per_cap(FONT_SB, 22 * S)
-        tx = 314
-        off_t = f_tit.getbbox("S")[1]
-        testo = Image.new("L", img.size, 0)
-        ImageDraw.Draw(testo).text((p(tx)[0], p(78)[0] - off_t), "SNELLINO", font=f_tit, fill=255)
-        img.paste(gradiente(*img.size, NAVY, BLU, diagonale=False), mask=testo)
-        # sottotitolo spaziato
-        x = p(tx + 3)[0]
-        off_s = f_sub.getbbox("C")[1]
-        for ch in "COMPRESSORE PDF":
-            d.text((x, p(158)[0] - off_s), ch, font=f_sub, fill=CIANO)
-            x += f_sub.getlength(ch) + 3 * S
+    # frecce sull'ombra che spingono il ventaglio a destra: "stringi!"
+    freccia(d, margine + pw - sottile.width - 30, 232, +1, CIANO)
     return img
 
 
-def salva():
-    grande = disegna(True)
-    bbox = grande.getbbox()
-    margine = 3 * S
-    grande = grande.crop((max(0, bbox[0] - margine), max(0, bbox[1] - margine), min(grande.width, bbox[2] + margine), min(grande.height, bbox[3] + margine)))
-    logo = grande.resize((grande.width // S, grande.height // S), Image.LANCZOS)
-    bianco = Image.new("RGB", logo.size, (255, 255, 255))
-    bianco.paste(logo, mask=logo.split()[3])
-    bianco.save(OUT / "snellino-card-hub.png", optimize=True)          # tessera del PDE Hub
-    logo.save(OUT / "snellino-logo.png", optimize=True)
-    h = round(logo.height * 480 / logo.width)
-    logo.resize((480, h), Image.LANCZOS).save(OUT / "snellino-logo-480.png", optimize=True)
+def logo_completo(con_pavone=True):
+    cap = CAP_BOTTOM - CAP_TOP
+    f_pde = font_per_cap(FONT_B, cap)
+    f_nome = font_per_cap(FONT_R, cap)
+    f_tag = font_per_cap(FONT_B, 40)
+    pav = pavone_a_dieta()
 
-    # icona quadrata (solo documento + distintivo) e favicon
-    icona = disegna(False).crop((86 * S, 0, 86 * S + 256 * S, 256 * S))
-    icona = icona.resize((256, 256), Image.LANCZOS)
-    icona.save(OUT / "snellino-icona.png", optimize=True)
+    X0 = 41
+    w_pde = f_pde.getlength("SNELL")
+    gap = 6
+    w_nome = f_nome.getlength("INO")
+    x_pav = int(X0 + w_pde + gap + w_nome + 10)
+    W = x_pav + pav.width + 38
+
+    img = Image.new("RGBA", (W, H), (255, 255, 255, 0))
+    d = ImageDraw.Draw(img)
+    d.text((X0, CAP_TOP - f_pde.getbbox("E")[1]), "SNELL", font=f_pde, fill=NAVY)
+    d.text((X0 + w_pde + gap, CAP_TOP - f_nome.getbbox("E")[1]), "INO", font=f_nome, fill=BLU)
+
+    # motto come in Giro Manager: tre parti, tre colori, barre in mezzo, molto spaziato
+    spazio = 7
+    x = X0 + 3
+    y = TAG_TOP - f_tag.getbbox("E")[1]
+    for t, col in [("COMPRIMI.", NAVY), ("I", NAVY), ("UNISCI.", BLU), ("I", BLU), ("DIMAGRISCI.", CIANO)]:
+        for c in t:
+            d.text((x, y), c, font=f_tag, fill=col)
+            x += f_tag.getlength(c) + spazio
+        x += 20
+
+    if con_pavone:
+        img.alpha_composite(pav, (x_pav, 0))
+    img = img.crop(img.getbbox())
+    pad = 40
+    logo = Image.new("RGBA", (img.width + 2 * pad, img.height + 2 * pad), (255, 255, 255, 0))
+    logo.alpha_composite(img, (pad, pad))
+    return logo
+
+
+def su_bianco(img):
+    b = Image.new("RGB", img.size, (255, 255, 255))
+    b.paste(img, mask=img.split()[3])
+    return b
+
+
+def salva():
+    logo = logo_completo()
+    logo.save(OUT / "snellino-logo.png", optimize=True)
+    # versioni per l'app (intestazione e login): margine sottile, così la scritta riempie il riquadro
+    app = logo.crop(logo.getbbox())
+    m = 10
+    app_m = Image.new("RGBA", (app.width + 2 * m, app.height + 2 * m), (255, 255, 255, 0))
+    app_m.alpha_composite(app, (m, m))
+    for w in (480, 960):
+        h = round(app_m.height * w / app_m.width)
+        app_m.resize((w, h), Image.LANCZOS).save(OUT / f"snellino-logo-{w}.png", optimize=True)
+
+    # tessera del PDE Hub: 600 × 247 su bianco. Il riquadro del Hub è stretto (circa 2,4:1),
+    # quindi qui il pavone è alto quanto tutto il blocco di testo e la scritta viene più grande.
+    testo = logo_completo(con_pavone=False)
+    testo = testo.crop(testo.getbbox())
+    pav = pavone_a_dieta()
+    pav = pav.crop(pav.getbbox())
+    hp = round(testo.height * 1.28)
+    pav = pav.resize((round(pav.width * hp / pav.height), hp), Image.LANCZOS)
+    stretto = Image.new("RGBA", (testo.width + 30 + pav.width, hp), (255, 255, 255, 0))
+    stretto.alpha_composite(testo, (0, (hp - testo.height) // 2 + round(testo.height * 0.04)))
+    stretto.alpha_composite(pav, (testo.width + 30, 0))
+    # ritaglio stretto con un filo di margine: nel Hub la tessera ha width:86%;height:74% (vedi index.html del Hub)
+    m = 12
+    card = Image.new("RGBA", (stretto.width + 2 * m, stretto.height + 2 * m), (255, 255, 255, 255))
+    card.alpha_composite(stretto, (m, m))
+    card = card.resize((720, round(card.height * 720 / card.width)), Image.LANCZOS)
+    su_bianco(card).save(OUT / "snellino-card-hub.png", optimize=True)
+
+    # icona quadrata e favicon: solo il pavone a dieta
+    pav = pavone_a_dieta()
+    pav = pav.crop(pav.getbbox())
+    lato = round(max(pav.size) * 1.12)
+    icona = Image.new("RGBA", (lato, lato), (255, 255, 255, 0))
+    icona.alpha_composite(pav, ((lato - pav.width) // 2, (lato - pav.height) // 2))
+    icona.resize((512, 512), Image.LANCZOS).save(OUT / "snellino-icona.png", optimize=True)
     icona.resize((64, 64), Image.LANCZOS).save(OUT / "snellino-favicon-64.png", optimize=True)
     print("Logo creato in", OUT, logo.size)
 
