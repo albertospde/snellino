@@ -37,5 +37,5 @@ Supabase serve solo per il login: nessun file viene caricato.
 
 ## Sviluppo
 - Server locale: `py -m http.server 8767` e apri `http://localhost:8767/?prova` (salta il login solo su localhost).
-- Logo: `py scripts/crea_logo.py` rigenera i file in `logo/` (`snellino-card-hub.png` è la tessera del Hub).
+- Logo: quello comune delle app PDE, collegato dal Hub (`pde-hub/assets/pde-app-logo.css`, Montserrat + ala PDE); la favicon `logo/snellino-favicon-64.png` è l'ala PDE ritagliata da `pde-logo-art.webp`.
 - Ghostscript WASM: pacchetto npm `@jspawn/ghostscript-wasm` 0.0.2 (licenza AGPL-3.0, vedi `vendor/ghostscript/LICENSE`).

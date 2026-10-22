@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Snellino — Comprimi e modifica PDF | PDE</title>
-<link rel="icon" type="image/png" href="logo/snellino-favicon-64.png?v=5">
+<link rel="icon" type="image/png" href="logo/snellino-favicon-64.png?v=6">
+<!-- logo comune delle app PDE (stesso stampo del PDE Hub e di Giro Manager) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://albertospde.github.io/pde-hub/assets/pde-app-logo.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
@@ -30,7 +33,7 @@ button{font-family:var(--sans);}
 /* intestazione */
 .hdr{background:rgba(22,29,47,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;gap:16px;height:76px;position:sticky;top:0;z-index:100;}
 .hdr-logo{background:#fff;border-radius:12px;padding:6px 14px;display:flex;align-items:center;height:60px;box-shadow:0 4px 16px rgba(0,0,0,.25);}
-.hdr-logo img{height:48px;display:block;}
+.hdr-logo .pde-logo{font-size:19px;}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
 .hdr-user{font-size:13px;color:var(--text3);}
 .logout-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:8px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;}
@@ -64,7 +67,8 @@ button{font-family:var(--sans);}
 /* zona di trascinamento */
 .drop{border:3px dashed var(--border);border-radius:24px;background:var(--surface);padding:42px 24px 34px;text-align:center;transition:.2s;position:relative;}
 .drop.over{border-color:var(--accent);background:rgba(31,182,238,.08);transform:scale(1.01);}
-.drop-img{width:132px;height:132px;margin:0 auto 12px;display:block;background:#fff;border-radius:50%;padding:16px;filter:drop-shadow(0 8px 18px rgba(31,140,238,.35));animation:galleggia 3.5s ease-in-out infinite;}
+.drop-img{width:132px;height:132px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:50%;box-shadow:0 8px 24px rgba(31,140,238,.3);animation:galleggia 3.5s ease-in-out infinite;}
+.drop-img .pde-logo{font-size:34px;}
 @keyframes galleggia{50%{transform:translateY(-6px);}}
 .drop-ico{width:96px;height:96px;margin:0 auto 10px;color:var(--accent);animation:galleggia 3.5s ease-in-out infinite;}
 .drop h2{font-size:28px;font-weight:900;margin-bottom:6px;}
@@ -195,7 +199,7 @@ tbody tr:hover td{background:rgba(255,255,255,.025);}
 .login-wrap{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;}
 .login-box{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:34px 32px;width:420px;max-width:100%;box-shadow:0 30px 70px rgba(0,0,0,.35);}
 .login-logo{background:#fff;border-radius:16px;padding:14px 18px;display:flex;justify-content:center;margin-bottom:20px;}
-.login-logo img{height:auto;width:100%;max-width:330px;}
+.login-logo .pde-logo{font-size:27px;}
 .login-title{font-size:22px;font-weight:900;text-align:center;margin-bottom:4px;}
 .login-sub{font-size:15px;color:var(--text2);text-align:center;margin-bottom:22px;}
 .login-field{margin-bottom:14px;}
@@ -244,7 +248,7 @@ html[data-theme="light"] .anteprima{background:rgba(20,32,74,.55);}
 
 @media (max-width:768px){
   .hdr{padding:0 12px;gap:8px;height:64px;}
-  .hdr-logo{height:48px;padding:4px 10px;} .hdr-logo img{height:38px;}
+  .hdr-logo{height:48px;padding:4px 10px;} .hdr-logo .pde-logo{font-size:14px;}
   .hdr-user,.theme-opt span{display:none;}
   .saluto{padding:18px 16px 0;} .saluto h1{font-size:24px;}
   .tabs{grid-template-columns:1fr;padding:14px 16px;gap:10px;}
@@ -282,7 +286,7 @@ html[data-theme="light"] .anteprima{background:rgba(20,32,74,.55);}
 <!-- LOGIN (stesse credenziali del PDE Hub; se si arriva dal Hub la sessione c'è già) -->
 <div class="login-wrap" id="loginWrap" style="display:none">
   <div class="login-box">
-    <div class="login-logo"><img src="logo/snellino-logo-480.png?v=5" alt="Snellino"></div>
+    <div class="login-logo"><div class="pde-logo" role="img" aria-label="Snellino"><div class="pl-text"><div class="pl-name uno"><b>SNELL</b><span>INO</span></div><div class="pl-tag"><i class="c0">COMPRIMI.</i><em>I</em><i class="c1">UNISCI.</i><em>I</em><i class="c2">RIORDINA.</i></div></div><div class="pl-wing"></div></div></div>
     <div class="login-title">Bentornato su Snellino 👋</div>
     <div class="login-sub">Accedi con le credenziali del PDE Hub</div>
     <div class="login-field">
@@ -303,7 +307,7 @@ html[data-theme="light"] .anteprima{background:rgba(20,32,74,.55);}
 
 <div id="app" style="display:none">
   <div class="hdr">
-    <div class="hdr-logo"><img src="logo/snellino-logo-480.png?v=5" alt="Snellino"></div>
+    <div class="hdr-logo"><div class="pde-logo" role="img" aria-label="Snellino"><div class="pl-text"><div class="pl-name uno"><b>SNELL</b><span>INO</span></div><div class="pl-tag"><i class="c0">COMPRIMI.</i><em>I</em><i class="c1">UNISCI.</i><em>I</em><i class="c2">RIORDINA.</i></div></div><div class="pl-wing"></div></div></div>
     <div class="hdr-right">
       <span class="hdr-user" id="hdrUser"></span>
       <div class="theme-switch" role="group" aria-label="Tema">
@@ -337,7 +341,7 @@ html[data-theme="light"] .anteprima{background:rgba(20,32,74,.55);}
 
   <div class="main" id="vistaComprimi">
     <div class="drop" id="drop">
-      <img class="drop-img" src="logo/snellino-icona.png?v=5" alt="">
+      <div class="drop-img" aria-hidden="true"><div class="pde-logo"><div class="pl-wing"></div></div></div>
       <h2>Trascina qui i tuoi PDF</h2>
       <p>File singoli o intere cartelle: le cartelle restano uguali nello ZIP finale.</p>
       <div class="drop-btns">
