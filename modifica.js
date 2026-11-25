@@ -130,6 +130,7 @@ function edSoloSelezione() {
 function edDisegna() {
   const aperto = ed.fonti.length > 0;
   $('dropEd').style.display = aperto ? 'none' : '';
+  $('benvEd').style.display = aperto ? 'none' : '';
   $('edLavoro').style.display = aperto ? '' : 'none';
   if (!aperto) { $('edGrid').innerHTML = ''; return; }
   edStato();
